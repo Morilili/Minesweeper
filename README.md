@@ -1,5 +1,5 @@
-<h1 align = 'center'> 🚩 Minesweeper 🚩<h1>
-
+<h1 align = 'center'> 🚩 Minesweeper 🚩</h1>
+	
 ## Description:
 A Minesweeper game clone with GUI using pyFLTK!
 	
