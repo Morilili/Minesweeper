@@ -1,20 +1,22 @@
 from fltk import *
 from PIL import Image
 import random, io, time
+from pathlib import Path
 
 class game(Fl_Double_Window):
 	def __init__(self,w,h,label = "Minesweeper"):
+		
 		super().__init__(w,h,label)
-		self.rows = 20
-		self.cols = 20
-		self.tsizex = w//self.rows
-		self.tsizey = h//self.cols
+		self.cols = 30
+		self.rows = 16
+		self.tsizex = w//self.cols
+		self.tsizey = h//self.rows
+		self.mines = 99
+		
 		self.marker = 0 #start time marker
 
 		self.buts(w,h)
-		while self.mines > 0 :#makes sure all mines are placed
-			self.buts(w,h)
-
+		
 		self.images = {	#covers 90% of tile to show lines
 			"click":self.img_resize('click.png',(self.tsizex//10)*9),
 			"mine": self.img_resize('mine.png',(self.tsizex//10)*9),
@@ -36,8 +38,8 @@ class game(Fl_Double_Window):
 		p=Fl_Group(0,0,w,h)
 		p.begin()
 		self.tiles = {}
-		self.mines = 40
-		self.mcount = self.mines #constant value of # of mines in game
+
+		# initialize the playing board
 		for x in range(0,w,self.tsizex):
 			for y in range(0,h,self.tsizey):
 				dx = round(x/self.tsizex)
@@ -48,14 +50,9 @@ class game(Fl_Double_Window):
 				but = Fl_Button(x,y,self.tsizex,self.tsizex)
 				but.color(FL_DARK2)
 				isMine = False
-
-				#random place mine/ act like percentage
-				if random.uniform(0.0, 1.0) < 0.05 :
-					if self.mines > 0:
-						isMine = True
-						self.mines -= 1
 				
 				id = str(dx) + "_" + str(dy)
+								
 				tile = {
 					"id": id,
 					"isMine": isMine,
@@ -63,17 +60,25 @@ class game(Fl_Double_Window):
 					"flag":False,
 					"coords": {"x": x,"y": y},
 					"but": but,
-					"mines":0
-					}
-
+					"mines": 0
+				}
+				
 				self.tiles[dx][dy] = tile
 		
-		#counts the number of mine surrounding each tile
-		for i in range (self.rows):
-			for j in range (self.cols):
+		# sets the mines
+		while (self.mines != 0):
+			dx = random.randrange(0, self.cols)
+			dy = random.randrange(0, self.rows)
+			if (self.tiles[dx][dy]["isMine"] == False):
+				self.tiles[dx][dy]["isMine"] = True
+				self.mines -= 1
+
+		# counts the number of mine surrounding each tile
+		for i in range (self.cols):
+			for j in range (self.rows):
 				num = self.getBombs(i,j)
 				self.tiles[i][j].update({'mines':num})
-
+		
 		p.end()
 		p.type(FL_NO_BOX)
 		p.resizable(None)
@@ -132,35 +137,39 @@ class game(Fl_Double_Window):
 
 	#check if won
 	def win(self):
-		for x in range(self.rows):
-			for y in range(self.cols):
+		for x in range(self.cols):
+			for y in range(self.rows):
 				var = self.tiles[x][y]
 				if var['clicked'] == False and var['isMine'] == False:
 					return
 
 		self.end = time.time()
-		sec = round(self.end - self.start,2)
+		sec = round(self.end - self.start, 2)
 		
-		with open('highscore.txt', 'r') as f: 
-			text = f.read()
-		f.close()
-		with open('highscore.txt', 'w') as f:
+		# can be used to write to a highscore text file
+		# NOT USING
 
-			if text == '':
-				name = fl_input(f'Congrats!! New high score of {sec} seconds!!\nEnter name:')
-				f.write(f'{name} - {sec}s')
-			elif sec < float(text[-5:-1]):
-				name = fl_input(f'Congrats!! New high score of {sec} seconds!!\nEnter name:')
-				f.write(f'{name} - {sec}s')
-			else:
-				fl_message(f'You won in {sec} seconds!\nRecord: {text}')
-			f.close()	
+		# with open('highscore.txt', 'r') as f: 
+		# 	text = f.read()
+		# f.close()
+		# with open('highscore.txt', 'w') as f:
+
+		# 	if text == '':
+		# 		name = fl_input(f'Congrats!! New high score of {sec} seconds!!\nEnter name:')
+		# 		f.write(f'{name} - {sec}s')
+		# 	elif sec < float(text[-5:-1]):
+		# 		name = fl_input(f'Congrats!! New high score of {sec} seconds!!\nEnter name:')
+		# 		f.write(f'{name} - {sec}s')
+		# 	else:
+		# 		fl_message(f'You won in {sec} seconds!\nRecord: {text}')
+		# 	f.close()	
+		fl_message(f'You won in {sec} seconds!\n')
 		self.hide()
 
 	#when loses
 	def lost(self):
-		for x in range(self.rows):
-			for y in range(self.cols):
+		for x in range(self.cols):
+			for y in range(self.rows):
 
 				var = self.tiles[x][y]	
 
@@ -245,7 +254,12 @@ class game(Fl_Double_Window):
 			return self.tiles[dx][dy]['mines']
 
 	def img_resize(self,fname,width):
-		img = Image.open(fname)
+		# trying to do relative path in python
+		# this is to access images from the "pictures" directory
+		base_path = Path(__file__).parent
+		file_path = (base_path / "pictures" /fname).resolve()
+		
+		img = Image.open(file_path)
 		w,h = img.size
 		height = int(width*h/w)
 		img = img.resize((width, height), Image.BICUBIC)
@@ -254,6 +268,6 @@ class game(Fl_Double_Window):
 		siz = mem.tell()
 		return Fl_PNG_Image(None, mem.getbuffer(), siz)
 
-app = game(250,250)
+app = game(1200,640)
 app.show()
 Fl.run()
